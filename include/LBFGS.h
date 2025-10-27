@@ -4,6 +4,8 @@
 #ifndef LBFGSPP_LBFGS_H
 #define LBFGSPP_LBFGS_H
 
+#include <format>
+#include <iostream>
 #include <Eigen/Core>
 #include "LBFGSpp/Param.h"
 #include "LBFGSpp/BFGSMat.h"
@@ -76,7 +78,7 @@ public:
     /// \return Number of iterations used.
     ///
     template <typename Foo>
-    inline int minimize(Foo& f, Vector& x, Scalar& fx)
+    inline int minimize(Foo& f, Vector& x, Scalar& fx, const bool& verbose = false)
     {
         using std::abs;
 
@@ -93,8 +95,11 @@ public:
         if (fpast > 0)
             m_fx[0] = fx;
 
-        // std::cout << "x0 = " << x.transpose() << std::endl;
-        // std::cout << "f(x0) = " << fx << ", ||grad|| = " << m_gnorm << std::endl << std::endl;
+        if (verbose)
+        {
+            std::cout << "x0 = " << x.transpose() << std::endl;
+            std::cout << std::format("f(x0) = {:.8e}, ||grad|| = {:.8e}\n\n", fx, m_gnorm);
+        }
 
         // Early exit if the initial x is already a minimizer
         if (m_gnorm <= m_param.epsilon || m_gnorm <= m_param.epsilon_rel * x.norm())
@@ -115,7 +120,9 @@ public:
         int k = 1;
         for (;;)
         {
-            // std::cout << "Iter " << k << " begins" << std::endl << std::endl;
+            if (verbose)
+                std::cout << "Iter " << k << " begins" << std::endl
+                          << std::endl;
 
             // Save the curent x and gradient
             m_xp.noalias() = x;
@@ -129,9 +136,12 @@ public:
             // New gradient norm
             m_gnorm = m_grad.norm();
 
-            // std::cout << "Iter " << k << " finished line search" << std::endl;
-            // std::cout << "   x = " << x.transpose() << std::endl;
-            // std::cout << "   f(x) = " << fx << ", ||grad|| = " << m_gnorm << std::endl << std::endl;
+            if (verbose)
+            {
+                std::cout << "Iter " << k << " finished line search" << std::endl;
+                std::cout << "   x = " << x.transpose() << std::endl;
+                std::cout << std::format("f(x0) = {:.8e}, ||grad|| = {:.8e}\n\n", fx, m_gnorm);
+            }
 
             // Convergence test -- gradient
             if (m_gnorm <= m_param.epsilon || m_gnorm <= m_param.epsilon_rel * x.norm())
