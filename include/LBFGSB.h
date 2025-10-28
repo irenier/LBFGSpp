@@ -4,6 +4,8 @@
 #ifndef LBFGSPP_LBFGSB_H
 #define LBFGSPP_LBFGSB_H
 
+#include <format>
+#include <iostream>
 #include <stdexcept>  // std::invalid_argument
 #include <vector>
 #include <Eigen/Core>
@@ -114,7 +116,7 @@ public:
     /// \return Number of iterations used.
     ///
     template <typename Foo>
-    inline int minimize(Foo& f, Vector& x, Scalar& fx, const Vector& lb, const Vector& ub)
+    inline int minimize(Foo& f, Vector& x, Scalar& fx, const Vector& lb, const Vector& ub, const bool& verbose = false)
     {
         using std::abs;
 
@@ -139,8 +141,11 @@ public:
         if (fpast > 0)
             m_fx[0] = fx;
 
-        // std::cout << "x0 = " << x.transpose() << std::endl;
-        // std::cout << "f(x0) = " << fx << ", ||proj_grad|| = " << m_projgnorm << std::endl << std::endl;
+        if (verbose)
+        {
+            std::cout << "x0 = " << x.transpose() << std::endl;
+            std::cout << std::format("f(x0) = {:.8e}, ||proj_grad|| = {}\n\n", fx, m_projgnorm);
+        }
 
         // Early exit if the initial x is already a minimizer
         if (m_projgnorm <= m_param.epsilon || m_projgnorm <= m_param.epsilon_rel * x.norm())
@@ -187,7 +192,7 @@ public:
             // In contrast, xcp is obtained from a line search, which tends to be more robust
             if (dg >= Scalar(0) || step_max <= m_param.min_step)
             {
-               // Reset search direction
+                // Reset search direction
                 m_drt.noalias() = xcp - x;
                 // Reset BFGS matrix
                 m_bfgs.reset(n, m_param.m);
@@ -205,9 +210,12 @@ public:
             // New projected gradient norm
             m_projgnorm = proj_grad_norm(x, m_grad, lb, ub);
 
-            /* std::cout << "** Iteration " << k << std::endl;
-            std::cout << "   x = " << x.transpose() << std::endl;
-            std::cout << "   f(x) = " << fx << ", ||proj_grad|| = " << m_projgnorm << std::endl << std::endl; */
+            if (verbose)
+            {
+                std::cout << "** Iteration " << k << std::endl;
+                std::cout << "   x = " << x.transpose() << std::endl;
+                std::cout << std::format("f(x0) = {:.8e}, ||proj_grad|| = {}\n\n", fx, m_projgnorm);
+            }
 
             // Convergence test -- gradient
             if (m_projgnorm <= m_param.epsilon || m_projgnorm <= m_param.epsilon_rel * x.norm())
